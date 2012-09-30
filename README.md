@@ -6,16 +6,7 @@ OpenCV filters are managed using a pipeline for webcam image processsing. VideoI
 Idea is to use a wrapper over OpenCV functionalities as a chain of filters:
 Example:
 
-//  -------------------------------------------------------------------------------------------------------
 
-#include "CameraCapture_VideoInput.h"
-#include "MotionDetectionFilter.h"
-#include "HistMotionDetectionFilter.h"
-#include "MathBinaryOpFilter.h"
-#include "MorphoFilter.h"
-
-int main(void)
-{
 	// camera handling choice:
 	CameraCapture_VideoInput cameraCapture;
 	
@@ -54,7 +45,4 @@ int main(void)
 	cameraCapture.setKeyboardHandler(&keyHandler);
 	cameraCapture.run();
 	
-	return 0;
-}
--------------------------------------------------------------------------------------------------------
 
