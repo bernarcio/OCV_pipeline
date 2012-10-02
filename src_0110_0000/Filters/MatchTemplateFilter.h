@@ -44,11 +44,6 @@ private:
 
 inline void MatchTemplateFilter::ApplyFilter(PipelineInput & input, PipelineBuffer * buffer)
 {
-	Mat inputImage = buffer->getOutputImage(input.getChannelNumber());
-	if (inputImage.channels() == 3)
-		cvtColor(inputImage, inputImage, CV_BGR2GRAY);
-	
-	
 	Mat result, templ;
 	templ = buffer->getInternalImage(templName);
 	if (templ.data == NULL)
@@ -57,18 +52,28 @@ inline void MatchTemplateFilter::ApplyFilter(PipelineInput & input, PipelineBuff
 		if (templ.channels() == 3)
 			cvtColor(templ, templ, CV_BGR2GRAY);
 	}
+	
+	Mat inputImage = buffer->getOutputImage(input.getChannelNumber());
+	if (inputImage.channels() == 3)
+		cvtColor(inputImage, inputImage, CV_BGR2GRAY);
+	
+	
+	
 
 	// match template:
 	matchTemplate(inputImage, templ, result, method);
 
 	// return:
-	
-	int res = (int) (255*result.at<float>(0,0));
-	cerr << "result = (8U) and (32F)" << res << ", " << result.at<float>(0,0) << endl;
+	// transform to 8U and invert:
+	//result.convertTo(result, CV_8U,255);
+	//result = 255 - result;
 
-	Mat output(inputImage.rows, inputImage.cols, CV_8U, Scalar(res));
+	//int res = (int) (255*result.at<float>(0,0));
+	//cerr << "result = (8U) and (32F)" << res << ", " << result.at<float>(0,0) << endl;
 
-	buffer->setOutputImages(output, input.getChannelNumber());
+	//Mat output(inputImage.rows, inputImage.cols, CV_8U, Scalar(res));
+
+	buffer->setOutputImages(result, input.getChannelNumber());
 
 }
 

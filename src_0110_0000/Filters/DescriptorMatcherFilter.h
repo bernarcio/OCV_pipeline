@@ -28,11 +28,18 @@ public:
     inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 
 
-
+#ifdef Q_WS_W32
     inline void Add(const QVector<Mat>& descriptors) {
         matcher.add(descriptors.toStdVector());
         descriptorAdded = true;
     }
+#endif
+
+	inline void Add(const vector<Mat>& descriptors) {
+        matcher.add(descriptors);
+        descriptorAdded = true;
+    }
+
 
     inline void Train(){
         matcher.train();

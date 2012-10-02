@@ -98,7 +98,7 @@ public:
 		return (it != internalVariables.end()) ? it->second : internalVariables["NULL"]; 
 	}
 
-	// !!! crash if no vector<KeyPoint> !!!
+	// ??? : !!! crash if no vector<KeyPoint> !!!
     inline vector<KeyPoint> & getInternalKeyPoints(string name) {
 		map<string, vector<KeyPoint> >::iterator it = internalKeyPoints.find(name);	
 		return (it != internalKeyPoints.end()) ? it->second : internalKeyPoints["NULL"]; 
@@ -113,6 +113,26 @@ public:
 			return i;
 		}	
 		
+	}
+
+	
+	// method copies all internal elements (Mat, keypoints, variables) from the current buffer into indicated buffer
+	inline void copyBufferTo(PipelineBuffer & buffer){
+		// copy InternalImages: 
+		map<string, Mat>::iterator it = internalImages.begin();
+		for (;it!=internalImages.end();it++)
+			buffer.setInternalImage(it->first, it->second); 
+
+		// copy InternalKeyPoints: 
+		map<string, vector<KeyPoint> >::iterator it2 = internalKeyPoints.begin();
+		for (;it2!=internalKeyPoints.end();it2++)
+			buffer.setInternalKeyPoints(it2->first, it2->second);
+
+		// copy InternalVariables:
+		map<string, InternalVariable>::iterator it3 = internalVariables.begin();
+		for(;it3!=internalVariables.end();it3++)
+			buffer.setInternalVariable(it3->first, it3->second);
+
 	}
 
 

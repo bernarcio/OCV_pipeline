@@ -12,7 +12,9 @@ class KeyboardHandle
 
 	
 public:
-	enum StdAction {SAVE_IMAGE_ON_DISK, SAVE_MATRIXDATA_ON_DISK, LOAD_MATRIXDATA_FROM_DISK_INTO_BUFFER, SAVE_IMAGE_IN_BUFFER, SAVE_MATRIXDATA_IN_BUFFER, EXEC_FUNCTION};
+	bool rec;
+	int recPplIndex;
+	enum StdAction {SAVE_IMAGE_ON_DISK, SAVE_MATRIXDATA_ON_DISK, SAVE_KEYPOINTS_ON_DISK, LOAD_MATRIXDATA_FROM_DISK_INTO_BUFFER, SAVE_IMAGE_IN_BUFFER, SAVE_MATRIXDATA_IN_BUFFER, START_REC_VIDEO_ON_DISK, STOP_REC_VIDEO_ON_DISK};
 	struct KeyDescription
 	{
 		char key;
@@ -21,31 +23,29 @@ public:
 		string bufferElementName;
 		string name;	
 
-		void (*function)(vector<Mat> &);
 		
 		KeyDescription(char k, StdAction ac, int pc, string nm):
 			key(k), action(ac), pipelineChannel(pc), name(nm) 
 			{
 				bufferElementName = "";
+				
 			}	
 		KeyDescription(char k, StdAction ac, string be, string nm):
 			key(k), action(ac), bufferElementName(be), name(nm) 
 			{
 				pipelineChannel = -1;
+				
 			}	
 
-		KeyDescription(char k, void (* f)(vector<Mat> &), string be) : key(k) {
-			action = EXEC_FUNCTION;
-			pipelineChannel = -1;
-			function = f;
-			bufferElementName=be;
-			name = "";
-		}
+		
 
 
 	};
 
-//	KeyboardHandle(){};
+	KeyboardHandle(){ 
+		rec=false;
+		recPplIndex = -1;
+	};
 //	~KeyboardHandle(){};
 
 	inline void addKey(char key, StdAction a=SAVE_IMAGE_ON_DISK, int pipelineChannel=0, string name="image.jpg");

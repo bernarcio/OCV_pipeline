@@ -64,25 +64,47 @@ class Pipeline
 	PipelineType pipelineFilters; // contains all filters and splits
 	 	
 	PipelineBuffer * buffer;
-	PipelineBuffer * sharedBuffer;
+	//PipelineBuffer * sharedBuffer;
 
 	int splitsCounter;
 
+	vector<bool> linesToShow;
+
+protected:
+
+	bool bufferIsReplaced;
+
 public:
-	Pipeline(PipelineBuffer * sharedbuffer = 0){
+	// method that deletes this->buffer and assign to another pointer. Used with PipelineSwitch when pipeline1 and pipeline2 write directly into pipeline.buffer instead of their own buffers and then copy them into pipeline.buffer.
+	inline void replaceBufferWith(PipelineBuffer * anotherBuffer){
+		if (buffer != NULL)
+			delete buffer;
+
+		buffer = anotherBuffer;
+		// flag to indicate that the buffer should not be deleted when this pipeline is destroyed
+		bufferIsReplaced = true;
+	} 
+
+public:
+
+
+	Pipeline(/*PipelineBuffer * sharedbuffer = 0*/){
 		pipelineFilters.clear();
 		
 		buffer =  new PipelineBuffer();
-		sharedBuffer = sharedbuffer;
+		//sharedBuffer = sharedbuffer;
 
 		splitsCounter = 0;
+		bufferIsReplaced = false;
 		
+		// 0 corresponds to original image and it is always shown:
+		linesToShow.push_back(true);
 	}
 
     inline ~Pipeline();
 
 	inline PipelineBuffer * shareBuffer(){return buffer;}
-
+	
 	inline void setInputImage(Mat & img) {inputImage = img;	}
     inline void processPipeline();
 	inline Mat & getOutputImage(int i=0) {return buffer->getOutputImage(i);}
@@ -92,7 +114,14 @@ public:
 	inline void addFilter(PipelineInput input=1, ImageAbstractFilter *filter=NULL) {
 		PipelineElementType p(input, filter);	
 		pipelineFilters.push_back(p);
+
+		if (input.getChannelNumber()==linesToShow.size())
+			linesToShow.push_back(true);
+		
+
 	}
+
+	
 
 	inline void addFilter(Pipeline & pipeline){
 		// put pipelineFilters into main pipelineFilters: (splits are copied automatically)
@@ -105,8 +134,9 @@ public:
 	}
 
 
-	inline Mat & getBufferImage(string name) {return buffer->getInternalImage(name);}
+	inline Mat & getBufferImage(string & name) {return buffer->getInternalImage(name);}
 
+	inline vector<KeyPoint> & getBufferKeyPoints(string & name) {return buffer->getInternalKeyPoints(name);}
 
 	// addSplit : PipelineInput input defines the processing line to copy 
 	inline void addSplit(PipelineInput input) {
@@ -125,11 +155,58 @@ public:
 		ImageAbstractFilter * sw = new PipelineSwitch<SwitchCondition>(condition, pipeline1, pipeline2);
 		PipelineElementType p(input, sw);	
 		pipelineFilters.push_back(p);
+		
+		// by default pipeline1 and pipeline2  buffers are shared with this->buffer
+		pipeline1.replaceBufferWith(buffer);
+		pipeline2.replaceBufferWith(buffer);
 	}
 
 
+	inline int getNumberOfOutputs() const {return linesToShow.size();}
 
-	inline int getNumberOfOutputs() const {return splitsCounter + 2;}
+
+	inline void setLinesToShow(int l1){ 
+		if (l1 < linesToShow.size() && l1 > 0){
+			// reset all:
+			for (int i=1;i<linesToShow.size();i++)
+				linesToShow[i] = false;
+			// set visible only one
+			linesToShow[l1] = true;
+		}
+	};
+
+	inline void setLinesToShow(int l1, int l2){
+		if (l1 < linesToShow.size() && l1 > 0 && l2 < linesToShow.size() && l2 > 0 && l1 != l2){
+			// reset all:
+			for (int i=1;i<linesToShow.size();i++)
+				linesToShow[i] = false;
+			// set visible only one
+			linesToShow[l1] = true;
+			linesToShow[l2] = true;
+		}
+	};
+
+	inline void setLinesToShow(int l1, int l2, int l3){
+		if (l1 < linesToShow.size() && l1 > 0 && l2 < linesToShow.size() && l2 > 0 && l1 != l2 && l3 < linesToShow.size() && l3 > 0 && l3 != l2 && l3 != l1){
+			// reset all:
+			for (int i=1;i<linesToShow.size();i++)
+				linesToShow[i] = false;
+			// set visible only one
+			linesToShow[l1] = true;
+			linesToShow[l2] = true;
+			linesToShow[l3] = true;
+		}
+	}
+	
+	//			 0		1	  2		 3		
+	// lines = {true, true, false, false}
+	inline void setLinesToShow(vector<bool> & lines){
+		//...
+	};
+
+	inline bool isLineShown(int i){
+		return linesToShow[i];
+	}
 };
 
 
@@ -143,7 +220,8 @@ void Pipeline::processPipeline()
 	// Set camera's image into the placement 0 of the buffer
 	buffer->setOutputImages(inputImage, 0);
 	// Set the copy into the placement 1 of the buffer
-	buffer->setOutputImages(inputImageCopy, 1);
+	if (linesToShow.size()!=1)
+		buffer->setOutputImages(inputImageCopy, 1);
 
 	PipelineType::iterator iter = pipelineFilters.begin();
 	for (;iter!=pipelineFilters.end(); ++iter){
@@ -170,13 +248,18 @@ Pipeline::~Pipeline()
     int s = pipelineFilters.size();
     while(s > 0){
         PipelineElementType p = pipelineFilters[s-1];
-        delete p.second;
+		if (p.second->deleted == false){ // does not work for two pipelines with one filter : second pipeline's filter adress does not become NULL
+			delete p.second;
+		}
         pipelineFilters.pop_back();
         s--;
     }
 	
 	// delete buffer:
-	delete buffer;
+	if (buffer != NULL && bufferIsReplaced == false){
+		delete buffer;
+		buffer = NULL;
+	}
 
 }
 

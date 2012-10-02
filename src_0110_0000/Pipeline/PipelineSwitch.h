@@ -68,9 +68,10 @@ inline void PipelineSwitch<SwitchCondition>::ApplyFilter(PipelineInput & input, 
 
 	// return :
 	Mat outputOrig = pipeline[pipelineNumber]->getOutputImage();
-	// get last channel line:
-	int channel = pipeline[pipelineNumber]->getNumberOfOutputs()-1;
+		// get last channel line:
+		int channel = pipeline[pipelineNumber]->getNumberOfOutputs()-1;
 	Mat output1 = pipeline[pipelineNumber]->getOutputImage(channel);
+	
 	buffer->setOutputImages(outputOrig, 0);
 	buffer->setOutputImages(output1, input.getChannelNumber());
 

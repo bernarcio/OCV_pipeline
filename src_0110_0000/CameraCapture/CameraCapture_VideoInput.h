@@ -32,6 +32,9 @@ class CameraCapture_VideoInput
 	Pipeline * pipelineR; // for stereo
 
 	KeyboardHandle * keyHandler;
+	VideoWriter vwriter;
+
+	
 
 
 public:
@@ -45,6 +48,8 @@ public:
 		numDevices = videoInput::listDevices();	
 		VI.setUseCallback(false);
 		this->stereo=stereo;
+
+		
 	}
 	~CameraCapture_VideoInput(){
 		//Shut down devices properly
@@ -59,24 +64,31 @@ public:
     inline void setPipeline(Pipeline * p, Pipeline * pr = 0) {pipeline = p; pipelineR = pr;}
 	inline void setKeyboardHandler(KeyboardHandle * kbh) {keyHandler = kbh;}
     inline void run(); // Method to start acquisition with pipeline processing
-    inline void runWithLearning(); // Method to start acquisition, keyboard handling to take pictures and apply pipeline filters
+    
+	
+	inline void runWithLearning(); // Method to start acquisition, keyboard handling to take pictures and apply pipeline filters
 
 
 
 protected:
-    inline void cameraInit();
+    inline bool cameraInit();
+	inline void keysInterpretation(int c);
 };
 
 
-void CameraCapture_VideoInput::cameraInit()
+bool CameraCapture_VideoInput::cameraInit()
 {
 	
-	if (!VI.setupDevice(device, VI_COMPOSITE))
-			cerr << "Camera load error" <<endl; 
+	if (!VI.setupDevice(device, VI_COMPOSITE)){
+			cerr << "Camera load error" <<endl;
+			return false;
+	}
 
 	if (stereo){
-		if (!VI.setupDevice(deviceR, VI_COMPOSITE))
+		if (!VI.setupDevice(deviceR, VI_COMPOSITE)){
 			cerr << "Camera right load error" <<endl; 
+			return false;
+		}
 	}
 
 
@@ -93,12 +105,15 @@ void CameraCapture_VideoInput::cameraInit()
 	cout << "Camera acquisition is started. Press 'q' to quit. " << endl;
 	cout << "Press 's' for camera settings configuration" << endl;
 
+	return true;
 
 }
 
 void CameraCapture_VideoInput::run()
 {
-	cameraInit();
+	if (!cameraInit()){
+		return;
+	}
 
 	while(1){
 	
@@ -125,14 +140,18 @@ void CameraCapture_VideoInput::run()
 		pipeline->setInputImage(img);
 		pipeline->processPipeline();
 
+		// Show pipeline lines:
 		for (int i=0; i<pipeline->getNumberOfOutputs();i++){
-			Mat pipelineOutImage(pipeline->getOutputImage(i));		
-			stringstream ss;
-			ss << i;
-			string wname = "Pipeline_" + ss.str();
-			cvShowImage(wname.c_str(), &pipelineOutImage.operator CvMat());
+			if (pipeline->isLineShown(i)){
+				Mat pipelineOutImage(pipeline->getOutputImage(i));		
+				stringstream ss;
+				ss << i;
+				string wname = "Pipeline_" + ss.str();
+				cvShowImage(wname.c_str(), &pipelineOutImage.operator CvMat());
+			}
 		}
 
+		
 
 		if (stereo){
 			pipelineR->setInputImage(imgR);		
@@ -149,7 +168,7 @@ void CameraCapture_VideoInput::run()
 
 		}
 		
-		// keyboard handling :
+		// keyboard handling : 
 		int c = cvWaitKey(5);
 		if( (char) c == 'q' || (char) c == 27 ) { break; } 
 		
@@ -160,7 +179,19 @@ void CameraCapture_VideoInput::run()
 			}			
 		} 
 		
-		if (keyHandler!=NULL){
+		keysInterpretation(c);		
+		
+	}
+
+
+}
+
+
+inline void CameraCapture_VideoInput::keysInterpretation(int c)
+{	
+
+	if (keyHandler!=NULL){
+
 			vector<KeyboardHandle::KeyDescription>::iterator it = keyHandler->getKeys().begin();
 			for (;it!=keyHandler->getKeys().end();it++){
 				if ((*it).key == (char ) c){
@@ -192,6 +223,33 @@ void CameraCapture_VideoInput::run()
 						fs.release();
 
 						cerr << "Matrix has been saved on the disk" << endl;
+
+					}else if ((*it).action == KeyboardHandle::SAVE_KEYPOINTS_ON_DISK){
+						
+						vector<KeyPoint> keypoints = pipeline->getBufferKeyPoints((*it).bufferElementName);
+						FileStorage fs((*it).name, FileStorage::WRITE);
+						int n = (*it).name.size(); 
+						int pos = (*it).name.find_last_of("//");
+						string item = (*it).name.substr(pos+1, n-4 - (pos+1));
+						int s = keypoints.size();
+						fs << item << s;
+						for (int i=0;i<s;i++){
+							stringstream ss;
+							ss << "keypoint_" << i;
+							fs << ss.str() << "{";
+							fs << "x" << keypoints[i].pt.x << "y" << keypoints[i].pt.y;
+							fs << "size" << keypoints[i].size;
+							fs << "angle" << keypoints[i].angle;
+							fs << "response" << keypoints[i].response;
+							fs << "octave" << keypoints[i].octave;
+							fs << "class_id" << keypoints[i].class_id;
+							fs << "}";
+						}
+						//KeyPoint kp(x,y,size,angle,response,octave,class_id)
+
+						fs.release();
+
+						cerr << "Keypoints have been saved on the disk" << endl;
 					
 					}else if ((*it).action == KeyboardHandle::SAVE_IMAGE_IN_BUFFER || (*it).action == KeyboardHandle::SAVE_MATRIXDATA_IN_BUFFER){
 						int index = (*it).pipelineChannel;
@@ -215,26 +273,59 @@ void CameraCapture_VideoInput::run()
 							fs[item] >> img;
 							pipeline->shareBuffer()->setInternalImage((*it).bufferElementName, img);
 							cout << "File has been succesfully read and matrix has been loaded into the buffer" << endl;
+
+							imshow("Loaded matrix",img);
+
 						}else{
 							cerr << "Can not read yml data file" << endl;
 						}
 						fs.release();
 
-					}else if ((*it).action == KeyboardHandle::EXEC_FUNCTION){
-						
+					}else if ((*it).action == KeyboardHandle::START_REC_VIDEO_ON_DISK ){
+						int fourcc = CV_FOURCC('M','J','P','G');
+						keyHandler->recPplIndex = (*it).pipelineChannel;
+						if (keyHandler->recPplIndex != -1){
+							Mat img = pipeline->getOutputImage(keyHandler->recPplIndex);
+							vwriter.open((*it).name, fourcc, 15, Size(img.cols, img.rows));
+							if(!vwriter.isOpened()){
+								cerr << "Cannot open VideoWriter and can not record video." << endl;
+							}else{	
+								keyHandler->rec = true;						
+								cout << "Recording is started" << endl;
+							}
 
+						
+						}else{
+							cerr << "pipeline channel error: pipelineChannel = -1" << endl; 
+						}
+										
+					}else if ((*it).action == KeyboardHandle::STOP_REC_VIDEO_ON_DISK){
+						
+						if (keyHandler->rec){
+							keyHandler->rec = false;
+							cout << "Recording is stoped" << endl;
+							
+						}
 					
 					}
 
-				}
+
+
+				} // if ((*it).key == (char ) c){
+
+			} // for (;it!=keyHandler->getKeys().end();it++){
+
+
+			// if record button was 
+			if (keyHandler->rec){
+				Mat img = pipeline->getOutputImage(keyHandler->recPplIndex);
+				vwriter << img;
 			}
-		}
-		
-	}
+
+	} // if (keyHandler != NULL)
 
 
 }
-
 
 
 

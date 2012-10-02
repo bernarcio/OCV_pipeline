@@ -14,14 +14,11 @@ class CascadeDetectorFilter : public ImageAbstractFilter
 	string cascadeName;
 	bool status; // true if classifier is OK (cascade is loaded), false otherwise
 	int scale;
-	int freq; // parameter defines at what number of calls detector is called: freq = 1, detector called every time, freq = 3, detector is called once every 3 calls. 
-	int count; // counter for freq.
 
-	vector<Rect> faces; // detected objects
-	Mat smallImg; // resized camera image 
+	//vector<Rect> faces; // detected objects
 
 public:
-	CascadeDetectorFilter(int _freq=10, CascadeType _type=FACE, int sc=1) : type(_type){
+	CascadeDetectorFilter(CascadeType _type=FACE, int sc=1) : type(_type){
 		 
 		cascadeName = "";
 		if (type==FACE){
@@ -36,8 +33,6 @@ public:
 		}
 
 		scale = sc;
-		freq = _freq;
-		count=0;
 		
 	};
 
@@ -52,14 +47,17 @@ public:
 
 inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBuffer * buffer)
 {
+
+	vector<Rect> faces; // detected objects
+
 	if (status){
 
-		// if it is 1 call of 'freq' number of calls -> proceed
-		if (count == 0 || faces.size() < 1){
+		
+		if ( faces.size() < 1){
 
 			Mat img = buffer->getOutputImage(input.getChannelNumber());
 			Mat gray;
-			smallImg = Mat( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC1 );
+			Mat smallImg = Mat( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC1 );
 			cvtColor( img, gray, CV_BGR2GRAY );
 
 			resize( gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR );
@@ -76,11 +74,6 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 				|CV_HAAR_SCALE_IMAGE
 				,
 				Size(30, 30)); 
-
-			count++;
-		}else{
-			count++;
-			(count >= freq) ? count = 0 : count;			
 		}
 		
 		// draw rectangles for detected objects:
@@ -90,23 +83,28 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 			buffer->setInternalVariable("det_obj_num", n);
 			int count=0;
 			Rect nr;
-			double fx = 0.15, fy = 0.25;
+			double fx = 0.05, fy = 0.35;
+			Mat img = buffer->getOutputImage("orig");
 			for( vector<Rect>::iterator r = faces.begin(); r != faces.end(); r++)
 			{
-				Mat smallImgROI;
+
+				
+
 				// correction to scale:
-				nr = *r; 
-				nr.x *= scale; nr.y *= scale; 
-				nr.width *= scale; nr.height *= scale;
+				(*r).x *= scale; (*r).y *= scale; 
+				(*r).width *= scale; (*r).height *= scale;
 
 				// enlarge detected rectangle:
-				nr.width += (int) (fx*nr.width);
-				nr.height += (int) (fy*nr.height);
-				nr.y -= (int) (0.5*fy*nr.height);
-				smallImgROI = smallImg(*r);
+				(*r).x = ((*r).x - (int) (0.5*fx*(*r).width) < 0) ? 0 : (*r).x - (int) (0.5*fx*(*r).width);
+				(*r).y = ( (*r).y - (int) (0.5*fy*(*r).height) < 0 ) ? 0 : (*r).y - (int) (0.5*fy*(*r).height);
+
+				(*r).width = ((*r).x + (*r).width + (int) (fx*(*r).width) >= img.cols) ? img.cols - (*r).x - 1 : (*r).width + (int) (fx*(*r).width);
+				(*r).height = ((*r).y + (*r).height + (int) (fy*(*r).height) >= img.rows) ? img.rows - (*r).y - 1 : (*r).height + (int) (fy*(*r).height);
+				
+				nr = *r;
 
 				// draw the rectangle:
-				rectangle(buffer->getOutputImage("orig"), nr, Scalar(255,20,0));
+				rectangle(img, nr, Scalar(255,20,0));
 		
 				// save ROI into buffer:
 				stringstream ss;
@@ -120,6 +118,10 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 				buffer->setInternalImage(name, m);
 				count++;
 			}		
+
+			// return 1st 'object' in the pipeline output:
+			img = img(faces[0]);
+			buffer->setOutputImages(img,input.getChannelNumber());
 		
 		}
 		

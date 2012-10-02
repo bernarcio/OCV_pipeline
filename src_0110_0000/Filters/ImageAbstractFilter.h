@@ -9,9 +9,13 @@
 class ImageAbstractFilter
 {
 
+	
 public:
+	// test:
+	bool deleted;
 
-	virtual ~ImageAbstractFilter(){};
+	inline ImageAbstractFilter() : deleted(true) {};
+	virtual ~ImageAbstractFilter(){ deleted = true; };
 	virtual void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer) = 0; 
 
 };
