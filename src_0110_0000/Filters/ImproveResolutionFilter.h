@@ -16,17 +16,17 @@ public:
 	}
 	~ImproveResolutionFilter(){};
 
-	Mat & ApplyFilter(Mat & image);
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+	inline Mat & ApplyFilter(Mat & image);
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 	
-	void InsertImage(Mat & FinalImage, Mat & imageToInsert, int linearposition);
+	inline void InsertImage(Mat & FinalImage, Mat & imageToInsert, int linearposition);
 
 
 };
 
 
 
-Mat & ImproveResolutionFilter::ApplyFilter(Mat & inputImage)
+inline Mat & ImproveResolutionFilter::ApplyFilter(Mat & inputImage)
 {
 	if (newResolutionImage.data == NULL)
 		newResolutionImage = Mat(inputImage.rows * numberOfFrames/2, inputImage.cols * numberOfFrames/2, inputImage.type(),Scalar(0));
@@ -38,7 +38,7 @@ Mat & ImproveResolutionFilter::ApplyFilter(Mat & inputImage)
 }
 
 
-void ImproveResolutionFilter::InsertImage(Mat & FinalImage, Mat & imageToInsert, int linearPosition)
+inline void ImproveResolutionFilter::InsertImage(Mat & FinalImage, Mat & imageToInsert, int linearPosition)
 {
 	
 	int n = numberOfFrames/2;

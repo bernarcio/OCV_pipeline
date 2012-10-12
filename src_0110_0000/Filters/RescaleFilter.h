@@ -11,14 +11,14 @@ class RescaleFilter : public ImageAbstractFilter
 public:
 	RescaleFilter(double fact, int t = 1) {factor=fact; type = t;};
 	~RescaleFilter(){};
-	Mat & ApplyFilter(Mat & image);
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+	inline Mat & ApplyFilter(Mat & image);
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 
 };
 
 
 
-Mat & RescaleFilter::ApplyFilter(Mat & inputImage)
+inline Mat & RescaleFilter::ApplyFilter(Mat & inputImage)
 {
 	
 	inputImage = inputImage*factor;

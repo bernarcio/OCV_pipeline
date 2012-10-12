@@ -11,13 +11,13 @@ class ResizeFilter : public ImageAbstractFilter
 public:
 	ResizeFilter(int fact, int interp = INTER_LINEAR) {factor=fact; interpolation = interp;};
 	~ResizeFilter(){};
-	Mat & ApplyFilter(Mat & image);
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+	inline Mat & ApplyFilter(Mat & image);
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 };
 
 
 
-Mat & ResizeFilter::ApplyFilter(Mat & inputImage)
+inline Mat & ResizeFilter::ApplyFilter(Mat & inputImage)
 {
 	
 	resize(inputImage,inputImage,Size(inputImage.cols*factor,inputImage.rows*factor), 0.0, 0.0, interpolation);

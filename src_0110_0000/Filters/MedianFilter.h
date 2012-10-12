@@ -10,14 +10,14 @@ class MedianFilter : public ImageAbstractFilter
 public:
 	MedianFilter(int s) {size=s;};
 	~MedianFilter(){};
-	Mat & ApplyFilter(Mat & image);
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+	inline Mat & ApplyFilter(Mat & image);
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 
 };
 
 
 
-Mat & MedianFilter::ApplyFilter(Mat & inputImage)
+inline Mat & MedianFilter::ApplyFilter(Mat & inputImage)
 {
 	
 	medianBlur(inputImage,inputImage,size);

@@ -43,7 +43,7 @@ public:
 
 	~MaskFilter(){};
 
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer); 
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer); 
 
 private:
 	MaskType maskType;
@@ -59,7 +59,7 @@ private:
 
 
 
-void MaskFilter::ApplyFilter(PipelineInput & input, PipelineBuffer * buffer)
+inline void MaskFilter::ApplyFilter(PipelineInput & input, PipelineBuffer * buffer)
 {
 	Mat img = buffer->getOutputImage(input.getChannelNumber());
 	

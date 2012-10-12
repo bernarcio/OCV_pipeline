@@ -15,13 +15,13 @@ public:
 	ContourFilter(int s=3) {size=s; type=0;}; // Sobel
 	ContourFilter(int s, double t1=30, double t2=150) {size=s; type=1; threshold_1 = t1;threshold_2 = t2;}; // Canny
 	~ContourFilter(){};
-	Mat & ApplyFilter(Mat & image);
-	void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+	inline Mat & ApplyFilter(Mat & image);
+	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
 };
 
 
 
-Mat & ContourFilter::ApplyFilter(Mat & inputImage)
+inline Mat & ContourFilter::ApplyFilter(Mat & inputImage)
 {
 	cvtColor(inputImage,inputImage, CV_BGR2GRAY, 0);
 	if (type==0){
