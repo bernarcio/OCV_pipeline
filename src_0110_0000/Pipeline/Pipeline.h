@@ -53,22 +53,26 @@
 #include "PipelineInput.h"
 #include "PipelineSplit.h"
 #include "PipelineSwitch.h"
-
+#include "PipelineFunction.h"
 
 
 class Pipeline
 {
 	Mat inputImage;
+	
 	typedef pair<PipelineInput, ImageAbstractFilter *> PipelineElementType;
 	typedef vector<PipelineElementType> PipelineType;
 	PipelineType pipelineFilters; // contains all filters and splits
-	 	
+	
+	vector<PipelineAbstractFunction *> pipelineFunctions; // functions that may be executed by KeyboardHandler  
+
+
 	PipelineBuffer * buffer;
-	//PipelineBuffer * sharedBuffer;
-
+	//PipelineBuffer * sharedBuffer; // no need
 	int splitsCounter;
-
 	vector<bool> linesToShow;
+
+
 
 protected:
 
@@ -111,7 +115,9 @@ public:
 	
 
 	
-	inline void addFilter(PipelineInput input=1, ImageAbstractFilter *filter=NULL) {
+	// ----------- addFilter()  ------------------------
+
+	inline void addFilter(PipelineInput input, ImageAbstractFilter *filter) {
 		PipelineElementType p(input, filter);	
 		pipelineFilters.push_back(p);
 
@@ -120,9 +126,7 @@ public:
 		
 
 	}
-
 	
-
 	inline void addFilter(Pipeline & pipeline){
 		// put pipelineFilters into main pipelineFilters: (splits are copied automatically)
 		PipelineType::iterator iter = pipeline.pipelineFilters.begin();
@@ -134,9 +138,35 @@ public:
 	}
 
 
-	inline Mat & getBufferImage(string & name) {return buffer->getInternalImage(name);}
+	// test : works
+	template<typename Filter>
+	inline void addFilter(PipelineInput input, Filter * _filter){
 
-	inline vector<KeyPoint> & getBufferKeyPoints(string & name) {return buffer->getInternalKeyPoints(name);}
+		ImageAbstractFilter * filter = dynamic_cast<ImageAbstractFilter *>(_filter);
+		
+		PipelineElementType p(input, filter);	
+		pipelineFilters.push_back(p);
+
+		if (input.getChannelNumber()==linesToShow.size())
+			linesToShow.push_back(true);
+	}
+
+	// ------------------- addFunction -------------------------------
+
+	
+	inline void addFunction(PipelineAbstractFunction * function){
+		pipelineFunctions.push_back(function);
+	}
+	
+	// ------------- getBuffer elements -------------------------------
+	inline Mat * getBufferImage(string name) {return buffer->getInternalImage(name);}
+	inline vector<KeyPoint> * getBufferKeyPoints(string name) {return buffer->getInternalKeyPoints(name);}
+
+	template<typename T> 
+	inline T * getBufferElement(string name) {
+		return buffer->getInternalElement<T>(name);
+	}
+
 
 	// addSplit : PipelineInput input defines the processing line to copy 
 	inline void addSplit(PipelineInput input) {
@@ -144,6 +174,10 @@ public:
 		PipelineElementType p(input, s);	
 		pipelineFilters.push_back(p);
 		splitsCounter++;
+
+		if (input.getChannelNumber()==linesToShow.size())
+			linesToShow.push_back(true);
+
 	}
 
 	
@@ -156,6 +190,9 @@ public:
 		PipelineElementType p(input, sw);	
 		pipelineFilters.push_back(p);
 		
+		if (input.getChannelNumber()==linesToShow.size())
+			linesToShow.push_back(true);
+
 		// by default pipeline1 and pipeline2  buffers are shared with this->buffer
 		pipeline1.replaceBufferWith(buffer);
 		pipeline2.replaceBufferWith(buffer);
@@ -228,6 +265,15 @@ void Pipeline::processPipeline()
 		(*iter).second->ApplyFilter((*iter).first, buffer);
 	}
 
+	// execute callback functions:
+	vector<PipelineAbstractFunction *>::iterator iter2 = pipelineFunctions.begin();
+	for(;iter2!=pipelineFunctions.end();iter2++){
+		if ((*iter2)->getFunctionType()==PipelineAbstractFunction::CALLED_AFTER_FILTERS)
+			(*iter2)->executeFunction();	
+	}
+
+
+
 }
 
 
@@ -259,6 +305,16 @@ Pipeline::~Pipeline()
 	if (buffer != NULL && bufferIsReplaced == false){
 		delete buffer;
 		buffer = NULL;
+	}
+
+	// delete pipelineFunctions:
+	int s2 = pipelineFunctions.size();
+	while (s2 > 0){
+		if (pipelineFunctions[s2-1] != NULL)
+			delete pipelineFunctions[s2-1];
+
+		pipelineFunctions.pop_back();
+		s2--;
 	}
 
 }

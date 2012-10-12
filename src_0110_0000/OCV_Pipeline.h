@@ -14,6 +14,7 @@
 
 
 // filters:
+
 #include "BlurFilter.h"
 #include "CalcBackProjectFilter.h"
 #include "CalcOpticalFlowFilter.h"
@@ -27,9 +28,12 @@
 #include "FIFOBufferFilter.h"
 #include "GenericDetectorFilter.h"
 #include "GenericDescriptorExtractorFilter.h"
+#include "GenericDescriptorMatcherFilter.h"
 #include "HistMotionDetectionFilter.h"
 #include "HoughTransformationFilter.h"
 #include "ImproveResolutionFilter.h"
+#include "MaskGenerationFilter.h"
+#include "MaskFilter.h"
 #include "MatchTemplateFilter.h"
 #include "MathOperationFilter.h"  // previously #include "MathBinaryOpFilter.h"
 #include "MedianFilter.h"

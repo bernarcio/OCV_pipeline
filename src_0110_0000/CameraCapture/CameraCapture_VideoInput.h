@@ -66,7 +66,7 @@ public:
     inline void run(); // Method to start acquisition with pipeline processing
     
 	
-	inline void runWithLearning(); // Method to start acquisition, keyboard handling to take pictures and apply pipeline filters
+	//inline void runWithLearning(); // Method to start acquisition, keyboard handling to take pictures and apply pipeline filters
 
 
 
@@ -170,6 +170,7 @@ void CameraCapture_VideoInput::run()
 		
 		// keyboard handling : 
 		int c = cvWaitKey(5);
+		//int c = cvWaitKey(0);
 		if( (char) c == 'q' || (char) c == 27 ) { break; } 
 		
 		if( (char) c == 's' ) { 
@@ -198,22 +199,34 @@ inline void CameraCapture_VideoInput::keysInterpretation(int c)
 					
 					if ((*it).action == KeyboardHandle::SAVE_IMAGE_ON_DISK){
 						int index = (*it).pipelineChannel; 
-						Mat img;
+						Mat img, *im;
 						if (index != -1){
 							img = pipeline->getOutputImage(index);
 						}else{
-							img = pipeline->getBufferImage((*it).bufferElementName);
+							im = pipeline->getBufferImage((*it).bufferElementName);
+							if(im !=NULL){
+								img = *im;
+							}else{
+								cerr << "KeyboardHandling: buffer matrix was not found at name : " << (*it).bufferElementName << endl;
+								continue;
+							}
 						}
 						imwrite((*it).name, img);
 						cout << "Image is saved on the disk" << endl;
 
 					}else if ((*it).action == KeyboardHandle::SAVE_MATRIXDATA_ON_DISK){
 						int index = (*it).pipelineChannel;
-						Mat img;
+						Mat img, *im;
 						if (index != -1){
 							img = pipeline->getOutputImage(index);
 						}else{
-							img = pipeline->getBufferImage((*it).bufferElementName);
+							im = pipeline->getBufferImage((*it).bufferElementName);
+							if(im !=NULL){
+								img = *im;
+							}else{
+								cerr << "KeyboardHandling: buffer matrix was not found at name : " << (*it).bufferElementName << endl;
+								continue;
+							}
 						}
 						FileStorage fs((*it).name, FileStorage::WRITE);
 						int n = (*it).name.size(); 
@@ -226,7 +239,13 @@ inline void CameraCapture_VideoInput::keysInterpretation(int c)
 
 					}else if ((*it).action == KeyboardHandle::SAVE_KEYPOINTS_ON_DISK){
 						
-						vector<KeyPoint> keypoints = pipeline->getBufferKeyPoints((*it).bufferElementName);
+						vector<KeyPoint> keypoints, *kp = pipeline->getBufferKeyPoints((*it).bufferElementName);
+						if (kp != NULL)
+							keypoints = *kp;
+						else{
+							cerr << "KeyboardHandling: Keypoints were not found at name : " << (*it).bufferElementName << endl;
+							continue;
+						}
 						FileStorage fs((*it).name, FileStorage::WRITE);
 						int n = (*it).name.size(); 
 						int pos = (*it).name.find_last_of("//");
@@ -329,7 +348,7 @@ inline void CameraCapture_VideoInput::keysInterpretation(int c)
 
 
 
-
+/*
 void CameraCapture_VideoInput::runWithLearning()
 {
 	cameraInit();
@@ -453,6 +472,6 @@ void CameraCapture_VideoInput::runWithLearning()
 
 
 }
-
+*/
 
 #endif // CAMERACAPTURE_VIDEOINPUT_H

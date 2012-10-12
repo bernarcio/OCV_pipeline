@@ -105,7 +105,15 @@ inline void CalcOpticalFlowFilter::ApplyFilter(PipelineInput & input, PipelineBu
 
 	}else{
 		// read the pipelineBuffer :
-		vector<KeyPoint> keyPoints = pipelineBuffer->getInternalKeyPoints(nameOfKeyPointsVariable);		
+		vector<KeyPoint> keyPoints, *kp = pipelineBuffer->getInternalKeyPoints(nameOfKeyPointsVariable);		
+		if (kp!=NULL){
+			keyPoints = *kp;
+		}else{
+			cerr << "CalcOpticalFlowFilter: Keypoints was not found at name : " << nameOfKeyPointsVariable << endl;
+			return;
+		}
+
+
 		int mc = (corner_count < keyPoints.size()) ? corner_count : keyPoints.size();
 		for (int i=0;i<mc;i++)
 			cornersA[i] = cvPoint2D32f(keyPoints[i].pt.x, keyPoints[i].pt.y);

@@ -32,8 +32,9 @@ inline void SegmentMotionFilter::ApplyFilter(PipelineInput & input, PipelineBuff
 	if (segmask.data == NULL)
 		segmask = Mat(inputImage.rows, inputImage.cols, CV_32F);
 	
-	double timestamp = buffer->getInternalVariable("timestamp").GetDoubleValue();
-	double mhiDuration = buffer->getInternalVariable("mhiDuration").GetDoubleValue();
+	
+	double timestamp = (*buffer->getInternalVariable<InternalVariable>("timestamp")).GetDoubleValue();
+	double mhiDuration = (*buffer->getInternalVariable<InternalVariable>("mhiDuration")).GetDoubleValue();
 	// Segment motion:
 	//Mat mhi = buffer->getInternalImage("mhi");
 	//segmentMotion(mhi, segmask, boundingRects, timestamp, MAX_TIME_DELTA);

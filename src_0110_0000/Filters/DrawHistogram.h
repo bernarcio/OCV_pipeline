@@ -3,15 +3,26 @@
 
 #include "ImageAbstractFilter.h"
 
+/*
+	Filter to draw the histogram of the image
+	GRAY - one channel - histogram is implemented
+		int startBoundary - if user wants to start the histogram from some other value than 0 -> neglect some dark colors (when mask is applied)
+
+*/
+
 
 class DrawHistogram : public ImageAbstractFilter
 {
 
 public:
 	enum ImageType {GRAY, RGB};
-	DrawHistogram(ImageType type=GRAY, string name="Histogram"){
+	DrawHistogram(ImageType type=GRAY, string name="Histogram", int startBoundary=0){
 		this->type = type;	
 		histWindowName = name;
+
+		this->startBoundary=startBoundary; 
+
+
 	};
 	~DrawHistogram(){};
 
@@ -24,6 +35,7 @@ protected:
 private:
 	ImageType type;
 	string histWindowName;
+	int startBoundary;
 };
 
 
@@ -46,15 +58,19 @@ inline void DrawHistogram::ApplyFilter(PipelineInput & input, PipelineBuffer * b
 	float range[] = {0,255}; 
 	
 	if (type == GRAY){
-		histSize[0] = 256;
 		channels[0] = 0;
-		range[0] = 0; range[1] = 255;
+		if (startBoundary == 0){
+			range[0] = 0; range[1] = 255;
+			histSize[0] = range[1] - range[0] + 1;
+		}else{
+			range[0] = startBoundary; range[1] = 255;
+			histSize[0] = range[1] - range[0] + 1;
+		}
 	}	
 	const float * ranges[] = {range};
 	
 	calcHist(&img,1,channels,Mat(),hist,1,histSize,ranges);
-	
-	drawHist(hist, 256, histWindowName);
+	drawHist(hist, 256 - startBoundary, histWindowName);
 
 }
 

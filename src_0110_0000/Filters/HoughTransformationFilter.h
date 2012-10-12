@@ -9,11 +9,20 @@ class HoughTransformationFilter : public ImageAbstractFilter
 
 public:
 	enum TransformationType {LINES, LINES_PROBA, CIRCLES};
-	HoughTransformationFilter(TransformationType type=LINES_PROBA, bool useBlurForCircles=true, bool useCannyForLines=true){
+	HoughTransformationFilter(TransformationType type=LINES_PROBA, bool useCannyForLines=true){
 		this->type = type;	
-		useBlur = useBlurForCircles;
 		useCanny = useCannyForLines;
 	};
+
+	HoughTransformationFilter(TransformationType type=CIRCLES, bool useBlurForCircles=true, int blurSize=5, string nameOfCirclesCentersKeyPoints="hough_circles_centers_keypoints"){
+		this->type = type;	
+		useBlur = useBlurForCircles;
+		this->blurSize = blurSize;
+		this->nameOfCirclesCentersKeyPoints = nameOfCirclesCentersKeyPoints;
+		
+	};
+
+
 	~HoughTransformationFilter(){};
 
 	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
@@ -21,7 +30,9 @@ public:
 private:
 	TransformationType type;
 	bool useBlur;
+	int blurSize;
 	bool useCanny;
+	string nameOfCirclesCentersKeyPoints;
 };
 
 
@@ -44,7 +55,7 @@ inline void HoughTransformationFilter::ApplyFilter(PipelineInput & input, Pipeli
 		vector<Vec3f> output;
 		// smooth otherwise a lot of false circles may be detected
 		if (useBlur)
-			GaussianBlur(gray, gray, Size(9,9),2,2); 
+			GaussianBlur(gray, gray, Size(blurSize,blurSize),blurSize/6,blurSize/12); 
 
 		// method = CV_HOUGH_GRADIENT
 		// Inverse ratio of the accumulator resolution to the image resolution = 2
@@ -89,7 +100,7 @@ inline void HoughTransformationFilter::ApplyFilter(PipelineInput & input, Pipeli
 		// return :
 		buffer->setOutputImages(img, input.getChannelNumber());
 		// store circles:
-		buffer->setInternalKeyPoints("hough_circles", keypoints);
+		buffer->setInternalKeyPoints(nameOfCirclesCentersKeyPoints, keypoints);
 
 
 	}else if (type == LINES){

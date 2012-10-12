@@ -12,13 +12,16 @@ class CascadeDetectorFilter : public ImageAbstractFilter
 	CascadeClassifier cascade;
 	CascadeType type;
 	string cascadeName;
+	string nameOfDetectedObject;
 	bool status; // true if classifier is OK (cascade is loaded), false otherwise
 	int scale;
+	bool detObjAsOutput;
+	bool enlargeDetObjRect;
 
 	//vector<Rect> faces; // detected objects
 
 public:
-	CascadeDetectorFilter(CascadeType _type=FACE, int sc=1) : type(_type){
+	CascadeDetectorFilter(CascadeType _type=FACE, int sc=1, bool detObjAsOutput=true, bool enlargeDetObjRect=true, string nameOfDetectedObject="det_obj") : type(_type){
 		 
 		cascadeName = "";
 		if (type==FACE){
@@ -33,6 +36,10 @@ public:
 		}
 
 		scale = sc;
+
+		this->nameOfDetectedObject = nameOfDetectedObject;
+		this->detObjAsOutput = detObjAsOutput;
+		this->enlargeDetObjRect = enlargeDetObjRect;
 		
 	};
 
@@ -80,7 +87,7 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 		if (faces.size()>0){
 
 			InternalVariable n((int) faces.size());
-			buffer->setInternalVariable("det_obj_num", n);
+			buffer->setInternalVariable<InternalVariable>(nameOfDetectedObject + "_num", n);
 			int count=0;
 			Rect nr;
 			double fx = 0.05, fy = 0.35;
@@ -95,11 +102,12 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 				(*r).width *= scale; (*r).height *= scale;
 
 				// enlarge detected rectangle:
-				(*r).x = ((*r).x - (int) (0.5*fx*(*r).width) < 0) ? 0 : (*r).x - (int) (0.5*fx*(*r).width);
-				(*r).y = ( (*r).y - (int) (0.5*fy*(*r).height) < 0 ) ? 0 : (*r).y - (int) (0.5*fy*(*r).height);
-
-				(*r).width = ((*r).x + (*r).width + (int) (fx*(*r).width) >= img.cols) ? img.cols - (*r).x - 1 : (*r).width + (int) (fx*(*r).width);
-				(*r).height = ((*r).y + (*r).height + (int) (fy*(*r).height) >= img.rows) ? img.rows - (*r).y - 1 : (*r).height + (int) (fy*(*r).height);
+				if (enlargeDetObjRect){
+					(*r).x = ((*r).x - (int) (0.5*fx*(*r).width) < 0) ? 0 : (*r).x - (int) (0.5*fx*(*r).width);
+					(*r).y = ( (*r).y - (int) (0.5*fy*(*r).height) < 0 ) ? 0 : (*r).y - (int) (0.5*fy*(*r).height);
+					(*r).width = ((*r).x + (*r).width + (int) (fx*(*r).width) >= img.cols) ? img.cols - (*r).x - 1 : (*r).width + (int) (fx*(*r).width);
+					(*r).height = ((*r).y + (*r).height + (int) (fy*(*r).height) >= img.rows) ? img.rows - (*r).y - 1 : (*r).height + (int) (fy*(*r).height);
+				}
 				
 				nr = *r;
 
@@ -109,19 +117,22 @@ inline void CascadeDetectorFilter::ApplyFilter(PipelineInput & input, PipelineBu
 				// save ROI into buffer:
 				stringstream ss;
 				ss << count;
-				string name = "det_obj_rect_" + ss.str();
-				Mat m(4,1,CV_32F,Scalar(0));
-				m.at<float>(0,0) = nr.x;
-				m.at<float>(1,0) = nr.y;
-				m.at<float>(2,0) = nr.width;
-				m.at<float>(3,0) = nr.height;
-				buffer->setInternalImage(name, m);
+				string name = nameOfDetectedObject + "_" + ss.str();
+				//Mat m(4,1,CV_32F,Scalar(0));
+				//m.at<float>(0,0) = nr.x;
+				//m.at<float>(1,0) = nr.y;
+				//m.at<float>(2,0) = nr.width;
+				//m.at<float>(3,0) = nr.height;
+ 				buffer->setInternalElement<Rect>(name, nr);
 				count++;
 			}		
 
 			// return 1st 'object' in the pipeline output:
-			img = img(faces[0]);
-			buffer->setOutputImages(img,input.getChannelNumber());
+			if (detObjAsOutput){
+				Mat nimg; 
+				img(faces[0]).copyTo(nimg);
+				buffer->setOutputImages(nimg,input.getChannelNumber());
+			}
 		
 		}
 		

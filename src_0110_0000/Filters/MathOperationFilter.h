@@ -8,14 +8,19 @@ class MathOperationFilter : public ImageAbstractFilter
 	
 public:
 	enum OperationType {MULT, SUM, DIFF, OR, AND};
-	OperationType type;
+	
 	MathOperationFilter(OperationType optype){
 		type = optype;
 	}
+
 	~MathOperationFilter(){}
 	
 	inline void ApplyFilter(PipelineInput & input, PipelineBuffer * buffer);
+
 	
+private:
+	OperationType type;
+
 
 };
 
@@ -27,17 +32,36 @@ inline void MathOperationFilter::ApplyFilter(PipelineInput & input, PipelineBuff
 		int channel_2 = input.getChannelNumber(1);
 	
 		Mat output = buffer->getOutputImage(channel_1);
+		Mat secondImg = buffer->getOutputImage(channel_2);
+
+		int t1 = output.type();
+		int t2 = secondImg.type();
+		if (t1 > t2){
+			secondImg.convertTo(secondImg, t1);	
+		}else if ( t1 < t2 ){
+			output.convertTo(output, t2);
+		}
+
+		if (output.channels() > secondImg.channels()){
+			cvtColor(secondImg,secondImg,CV_GRAY2BGR);
+		}else if (output.channels() < secondImg.channels()){
+			cvtColor(output,output,CV_GRAY2BGR);
+		}
+
+		//cerr << output.channels() << ", " << output.depth() << endl;
+		//cerr << secondImg.channels() << ", " << secondImg.depth() << endl;
+
 
 		if (type == MULT)
-			output = output.mul(buffer->getOutputImage(channel_2));
+			output = output.mul(secondImg);
 		else if (type == SUM)
-			output += buffer->getOutputImage(channel_2);
+			output += secondImg;
 		else if (type == DIFF)
-			output -=  buffer->getOutputImage(channel_2);
+			output -=  secondImg;
 		else if (type == OR)
-			output |= buffer->getOutputImage(channel_2);
+			output |= secondImg;
 		else if (type == AND)
-			output &= buffer->getOutputImage(channel_2);
+			output &= secondImg;
 	
 		buffer->setOutputImages(output, channel_1);
 

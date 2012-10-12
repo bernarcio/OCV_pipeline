@@ -85,9 +85,9 @@ inline void MotionHistoryFilter::ApplyFilter(PipelineInput & input, PipelineBuff
 	// set into internal memory: Mat mhi, double timestamp
 	pipelineBuffer->setInternalImage("mhi", mhi);	
 	InternalVariable v(timestamp);
-	pipelineBuffer->setInternalVariable("timestamp", v);
+	pipelineBuffer->setInternalVariable<InternalVariable>("timestamp", v);
 	InternalVariable d(mhiDuration);
-	pipelineBuffer->setInternalVariable("mhiDuration", d);
+	pipelineBuffer->setInternalVariable<InternalVariable>("mhiDuration", d);
 	
 	
 }

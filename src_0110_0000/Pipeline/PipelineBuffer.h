@@ -12,8 +12,10 @@ using namespace cv;
 using namespace std;
 
 
-enum VariableType {CHAR_TYPE, INT_TYPE, FLOAT_TYPE, DOUBLE_TYPE};
+#include "MultiTypeStorage.h"
 
+
+enum VariableType {CHAR_TYPE, INT_TYPE, FLOAT_TYPE, DOUBLE_TYPE};
 
 class InternalVariable
 {
@@ -45,18 +47,19 @@ public:
 class PipelineBuffer
 {
 	vector<Mat> outputImages;  // [0] is the original image, [1],[2] other outputs
-	map<string,Mat> internalImages;
-	map<string,vector<KeyPoint> > internalKeyPoints;
-	map<string,InternalVariable> internalVariables; 
+	
+	// old containers:
+	//map<string,Mat> internalImages;
+	//map<string,vector<KeyPoint> > internalKeyPoints;
+	//map<string,InternalVariable> internalVariables; 
+	
+	// new container:
+	MultiTypeStorage _storage;
 
 public:
 	
 	PipelineBuffer(){
-		internalImages.insert(pair<string, Mat>("NULL", Mat())); // NULL matrix, is send at getInternalImage(string) method when 'find' method fails to find requested matrix
-		vector<KeyPoint> nullVector; 
-		internalKeyPoints.insert(pair<string, vector<KeyPoint> >("NULL", nullVector)); // NULL vector, is send at getInternalKeyPoints(string) method when 'find' method fails to find requested KeyPoints
-		InternalVariable nullVar(0);
-		internalVariables.insert(pair<string, InternalVariable>("NULL", nullVar)); // NULL variable, is send at getInternalVariable(string) method when 'find' method fails to find requested variable
+
 	}
 
 	inline Mat & getOutputImage(int i) {return outputImages[i];}
@@ -64,46 +67,88 @@ public:
 
 
 	inline void setInternalImage(string name, Mat & value) { 
-		map<string,Mat>::iterator it = internalImages.find(name);	
-		if (it == internalImages.end())
-			internalImages.insert(pair<string, Mat>(name,value)); 
-		else
-			it->second = value;
+
+	//	map<string,Mat>::iterator it = internalImages.find(name);	
+	//	if (it == internalImages.end())
+	//		internalImages.insert(pair<string, Mat>(name,value)); 
+	//	else
+	//		it->second = value;
+	
+		_storage.setElement<Mat>(name, value);
+
 	} // insert checks if the same key exists, if so does not insert or replace the value. However for Mat that shares the same datacontainer, value modification happens automatically.
 
-	inline void setInternalVariable(string name, InternalVariable & value) { 
-		map<string, InternalVariable>::iterator it = internalVariables.find(name);	
-		if (it == internalVariables.end())
-			internalVariables.insert(pair<string, InternalVariable>(name,value)); 
-		else
-			it->second = value;
-	}	
+
+	// use this method in callback functions
+	inline void setInternalImage(string name, int i){
+		if (i<outputImages.size()){
+			_storage.setElement<Mat>(name, outputImages[i]);
+		}
+   }
+
+	//inline void setInternalVariable(string name, InternalVariable & value) { 
+		//	map<string, InternalVariable>::iterator it = internalVariables.find(name);	
+		//if (it == internalVariables.end())
+		//	internalVariables.insert(pair<string, InternalVariable>(name,value)); 
+		//else
+		//	it->second = value;
+	//}	
+	template<typename T>
+	inline void setInternalVariable(string name, T & value){
+		_storage.setElement<T>(name, value);
+	}
+
+	
 
 	inline void setInternalKeyPoints(string name, vector<KeyPoint> & kpoints) { 
-		map<string, vector<KeyPoint> >::iterator it = internalKeyPoints.find(name);	
-		if (it == internalKeyPoints.end())
-			internalKeyPoints.insert(pair<string, vector<KeyPoint> >(name,kpoints)); 
-		else
-			it->second = kpoints;
+		//map<string, vector<KeyPoint> >::iterator it = internalKeyPoints.find(name);	
+		//if (it == internalKeyPoints.end())
+		//	internalKeyPoints.insert(pair<string, vector<KeyPoint> >(name,kpoints)); 
+		//else
+		//	it->second = kpoints;
+		_storage.setElement<vector<KeyPoint> >(name, kpoints);
 	}	
 
+	
+	
 
-    inline Mat & getInternalImage(string name) {
-		map<string, Mat>::iterator it = internalImages.find(name);
-		return (it != internalImages.end()) ? it->second : internalImages["NULL"]; 
+	//// common method to insert any type of variable
+	template<typename T>
+	inline void setInternalElement(string name, T & t){
+		_storage.setElement<T>(name, t);
 	}
 
-    inline InternalVariable & getInternalVariable(string name) {
-		map<string, InternalVariable>::iterator it = internalVariables.find(name);
-		return (it != internalVariables.end()) ? it->second : internalVariables["NULL"]; 
+
+    inline Mat * getInternalImage(string name) {
+		//map<string, Mat>::iterator it = internalImages.find(name);
+		//return (it != internalImages.end()) ? it->second : internalImages["NULL"]; 
+		return _storage.getElement<Mat>(name);
 	}
 
-	// ??? : !!! crash if no vector<KeyPoint> !!!
-    inline vector<KeyPoint> & getInternalKeyPoints(string name) {
-		map<string, vector<KeyPoint> >::iterator it = internalKeyPoints.find(name);	
-		return (it != internalKeyPoints.end()) ? it->second : internalKeyPoints["NULL"]; 
+	template<typename T>
+    inline T * getInternalVariable(string name) {
+		//map<string, InternalVariable>::iterator it = internalVariables.find(name);
+		//return (it != internalVariables.end()) ? it->second : internalVariables["NULL"]; 
+		return _storage.getElement<T>(name);
+	}
+
+	
+    inline vector<KeyPoint> * getInternalKeyPoints(string name) {
+		//map<string, vector<KeyPoint> >::iterator it = internalKeyPoints.find(name);	
+		//return (it != internalKeyPoints.end()) ? it->second : internalKeyPoints["NULL"]; 
+		return _storage.getElement<vector<KeyPoint> >(name); 
 	}
 	
+
+	//// common method to get any type of variable
+	template<typename T>
+	inline T * getInternalElement(string name){
+		return _storage.getElement<T>(name);
+	}
+
+
+
+
 	inline int setOutputImages(Mat & value, int i=-1) {
 		if (i==-1 || i >= outputImages.size()){ // no index indicated
 			outputImages.push_back(value);
@@ -119,19 +164,21 @@ public:
 	// method copies all internal elements (Mat, keypoints, variables) from the current buffer into indicated buffer
 	inline void copyBufferTo(PipelineBuffer & buffer){
 		// copy InternalImages: 
-		map<string, Mat>::iterator it = internalImages.begin();
-		for (;it!=internalImages.end();it++)
-			buffer.setInternalImage(it->first, it->second); 
+		//map<string, Mat>::iterator it = internalImages.begin();
+		//for (;it!=internalImages.end();it++)
+		//	buffer.setInternalImage(it->first, it->second); 
 
 		// copy InternalKeyPoints: 
-		map<string, vector<KeyPoint> >::iterator it2 = internalKeyPoints.begin();
-		for (;it2!=internalKeyPoints.end();it2++)
-			buffer.setInternalKeyPoints(it2->first, it2->second);
+		//map<string, vector<KeyPoint> >::iterator it2 = internalKeyPoints.begin();
+		//for (;it2!=internalKeyPoints.end();it2++)
+		//	buffer.setInternalKeyPoints(it2->first, it2->second);
 
 		// copy InternalVariables:
-		map<string, InternalVariable>::iterator it3 = internalVariables.begin();
-		for(;it3!=internalVariables.end();it3++)
-			buffer.setInternalVariable(it3->first, it3->second);
+		//map<string, InternalVariable>::iterator it3 = internalVariables.begin();
+		//for(;it3!=internalVariables.end();it3++)
+		//	buffer.setInternalVariable(it3->first, it3->second);
+
+		_storage.copyStorageTo(buffer._storage);
 
 	}
 

@@ -57,7 +57,21 @@ public:
 
 		displayOutput(matcherPipeline, "matcherPipeline");
 
-		// 
+		// display two images with matched points:
+		// !!! names are given by hand. they are defined in main in GenericDetectorFilters etc
+		//Mat img1s = *learningPipeline->getBufferImage("learningPipeline_output");
+		//vector<KeyPoint> kp1 = *learningPipeline->getBufferKeyPoints("learning_keypoints");
+		//vector<KeyPoint> kp2 = *matcherPipeline->getBufferKeyPoints("matching_keypoints");
+		//vector<DMatch> m12 = *matcherPipeline->getBufferElement<vector<DMatch> >("matches");
+		//vector<vector<DMatch> > m12_reduced;
+		//int s = m12.size();
+		//m12_reduced.push_back(m12[0]);
+		//m12_reduced.push_back(m12[s/2]);
+		//m12_reduced.push_back(m12[s-1]);
+
+		//Mat outImg;
+		//drawMatches(img1s, kp1, img2, kp2, m12, outImg, Scalar(0,255,0),Scalar(255,0,0));
+		//imshow("Matches", outImg);
 
 		// need to show correctly images using imshow or cvShowImage
 		cvWaitKey(0);
@@ -82,6 +96,15 @@ protected:
 	}
 
 };
+
+
+
+
+// applications:
+int TwoImagesMatcher_app2();
+int TwoImagesMatcher_app();
+
+
 
 
 #endif

@@ -67,7 +67,13 @@ inline void DescriptorMatcherFilter::ApplyFilter(PipelineInput & input, Pipeline
     vector<DMatch> matches;
     vector<vector<DMatch> > knnmatches;
     // get query descriptors:
-    Mat queryDescriptors = buffer->getInternalImage("descriptors");
+    Mat queryDescriptors, *qd = buffer->getInternalImage("descriptors");
+	if (qd !=NULL){
+		queryDescriptors = *qd;
+	}else{
+		cerr << "DescriptorMatcherFilter: Mat was not found at name : " << "descriptors" << endl;
+		return;
+	}
 
     bool matchesFound = false;
 

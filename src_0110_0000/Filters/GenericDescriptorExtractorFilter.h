@@ -56,7 +56,13 @@ inline void GenericDescriptorExtractorFilter::ApplyFilter(PipelineInput & input,
 	
 
 	// read keypoints:
-	vector<KeyPoint> keypoints = buffer->getInternalKeyPoints(nameOfKeyPointsVariable);
+	vector<KeyPoint> keypoints, *kp = buffer->getInternalKeyPoints(nameOfKeyPointsVariable);
+	if (kp!=NULL){
+			keypoints = *kp;
+	}else{
+		cerr << "GenericDescriptorExtractorFilter: Keypoints was not found at name : " << nameOfKeyPointsVariable << endl;
+		return;
+	}
 
 	Mat descriptors;
 
